@@ -8,8 +8,10 @@
 
 import Foundation
 import RealmSwift
+import ChameleonFramework
 
 class Category: Object {
     @objc dynamic var title: String = ""
+    @objc dynamic var color: String = UIColor.randomFlat().hexValue()
     let items = List<Item>()
 }

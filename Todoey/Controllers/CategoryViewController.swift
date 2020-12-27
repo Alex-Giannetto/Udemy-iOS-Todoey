@@ -8,8 +8,9 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
-class CategoryViewController: UITableViewController {
+class CategoryViewController: SwipeTableViewController {
     
     private var categories: Results<Category>?
     private let realm = try! Realm()
@@ -17,6 +18,16 @@ class CategoryViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         loadCategories()
+        tableView.rowHeight = 80.0
+        tableView.separatorStyle = .none
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        if let hexColor = categories?[0].color {
+            
+            guard let navBar = navigationController?.navigationBar else {fatalError("No navigation bar")}
+            navBar.barTintColor = HexColor(hexColor)?.darken(byPercentage: 0.1)
+        }
     }
     
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
@@ -47,8 +58,18 @@ class CategoryViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
-        cell.textLabel?.text = categories?[indexPath.row].title ?? ""
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
+        
+        if let category = categories?[indexPath.row] {
+            cell.textLabel?.text = category.title
+            
+            if let color = HexColor(category.color) {
+                cell.backgroundColor = color
+                cell.textLabel?.textColor = ContrastColorOf(color, returnFlat: true)
+            }
+        }
+        
+        
         return cell
     }
     
@@ -84,5 +105,20 @@ class CategoryViewController: UITableViewController {
             print("Error saving category \(error)")
         }
         self.tableView.reloadData()
+    }
+    
+    override func updateModel(at indexPath: IndexPath) {
+        if let category = self.categories?[indexPath.row] {
+            do {
+                try self.realm.write{
+                    category.items.forEach() { item in
+                        self.realm.delete(item)
+                    }
+                    self.realm.delete(category)
+                }
+            } catch {
+                print("Error while delete category, \(error)")
+            }
+        }
     }
 }
